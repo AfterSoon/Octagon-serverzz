@@ -1,1 +1,3 @@
-ссылка на репозиторий: https://github.com/AfterSoon/Octagon-serverzz/tree/main_mysql
+ссылка на репозиторий: https://github.com/AfterSoon/Octagon-serverzz/tree/main_telegram
+
+TOKEN "8831313711:AAHA1XuI1x6OGW4KilT2W6ywQKahsTLtqoc"
