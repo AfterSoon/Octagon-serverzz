@@ -2,7 +2,7 @@ const TelegramBot = require('node-telegram-bot-api').default;
 const mysql = require('mysql2');
 
 // Вставь сюда свой токен от BotFather
-const token = '8831313711:AAHA1XuI1x6OGW4KilT2W6ywQKahsTLtqoc';
+const token = 'TOKEN HERE';
 
 // Создаем бота
 const bot = new TelegramBot(token, { polling: true });
@@ -33,7 +33,7 @@ bot.onText(/\/start/, (msg) => {
 bot.onText(/\/help/, (msg) => {
     const chatId = msg.chat.id;
     const helpText = `
-📋 Список команд:
+Список команд:
 
 /start - приветствие
 /help - список команд с описанием
@@ -42,11 +42,13 @@ bot.onText(/\/help/, (msg) => {
 /randomItem - случайный предмет из БД
 /deleteItem {id} - удалить предмет по ID
 /getItemByID {id} - получить предмет по ID
+
+!qr {текст/ссылка} - генерация QR-кода
+!webscr {ссылка} - скриншот сайта
     `.trim();
     
     bot.sendMessage(chatId, helpText);
 });
-
 // Команда /site - ссылка на сайт
 bot.onText(/\/site/, (msg) => {
     const chatId = msg.chat.id;
@@ -116,5 +118,47 @@ bot.onText(/\/getItemByID (.+)/, (msg, match) => {
         bot.sendMessage(chatId, `(${item.id}) - ${item.name}: ${item.desc}`);
     });
 });
+const axios = require('axios');
 
+// Команда !qr - генерация QR-кода
+bot.onText(/!qr (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const text = match[1];
+    
+    try {
+        // Используем бесплатный API для генерации QR-кода
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(text)}`;
+        
+        // Отправляем изображение QR-кода
+        await bot.sendPhoto(chatId, qrUrl, {
+            caption: `QR-код для: ${text}`
+        });
+    } catch (error) {
+        bot.sendMessage(chatId, 'Ошибка при генерации QR-кода');
+        console.error(error);
+    }
+});
+
+// Команда !webscr - скриншот сайта (используем бесплатный API)
+bot.onText(/!webscr (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    let url = match[1].trim();
+    
+    // Добавляем http:// если не указан протокол
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'http://' + url;
+    }
+    
+    try {
+        // Используем API thum.io (бесплатный, без регистрации)
+        const screenshotUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&embed=screenshot.url&waitUntil=networkidle2`;
+        
+        await bot.sendPhoto(chatId, screenshotUrl, {
+            caption: `Скриншот сайта: ${url}`
+        });
+    } catch (error) {
+        bot.sendMessage(chatId, 'Ошибка при создании скриншота');
+        console.error('Ошибка скриншота:', error.message);
+    }
+});
 console.log('Бот запущен...');
