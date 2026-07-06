@@ -4,7 +4,7 @@ const axios = require('axios');
 const { setIntervalAsync, clearIntervalAsync } = require('set-interval-async/dynamic');
 
 // Вставь сюда свой токен от BotFather
-const token = '8831313711:AAHA1XuI1x6OGW4KilT2W6ywQKahsTLtqoc';
+const token = 'TOKEN HERE';
 
 // Создаем бота
 const bot = new TelegramBot(token, { polling: true });
@@ -25,7 +25,7 @@ db.connect((err) => {
     console.log('Бот подключен к базе данных ChatBotTests');
 });
 
-// ===== ФУНКЦИЯ: Обновление даты последнего сообщения =====
+// ФУНКЦИЯ: Обновление даты последнего сообщения 
 function updateUserLastMessage(userId) {
     const today = new Date().toISOString().split('T')[0]; // формат YYYY-MM-DD
     
@@ -40,7 +40,7 @@ function updateUserLastMessage(userId) {
     });
 }
 
-// ===== ФУНКЦИЯ: Получение случайного предмета =====
+// ФУНКЦИЯ: Получение случайного предмета 
 function getRandomItem(callback) {
     const sql = 'SELECT * FROM Items ORDER BY RAND() LIMIT 1';
     db.query(sql, (err, results) => {
@@ -53,23 +53,23 @@ function getRandomItem(callback) {
     });
 }
 
-// ===== ОБРАБОТЧИК: Любое текстовое сообщение =====
+//  ОБРАБОТЧИК: Любое текстовое сообщение 
 bot.on('message', (msg) => {
     const userId = msg.from.id;
     updateUserLastMessage(userId);
 });
 
-// ===== КОМАНДА /start =====
+// КОМАНДА /start 
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, 'Привет, октагон!');
 });
 
-// ===== КОМАНДА /help =====
+//  КОМАНДА /help 
 bot.onText(/\/help/, (msg) => {
     const chatId = msg.chat.id;
     const helpText = `
-📋 Список команд:
+ Список команд:
 
 /start - приветствие
 /help - список команд с описанием
@@ -86,19 +86,19 @@ bot.onText(/\/help/, (msg) => {
     bot.sendMessage(chatId, helpText);
 });
 
-// ===== КОМАНДА /site =====
+// КОМАНДА /site 
 bot.onText(/\/site/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, 'Сайт Октагона: https://octagon.ru');
 });
 
-// ===== КОМАНДА /creator =====
+//  КОМАНДА /creator 
 bot.onText(/\/creator/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, 'Создатель бота: Сокорев Владимир');
 });
 
-// ===== КОМАНДА /randomItem =====
+//  КОМАНДА /randomItem 
 bot.onText(/\/randomItem/, (msg) => {
     const chatId = msg.chat.id;
     getRandomItem((text) => {
@@ -106,7 +106,7 @@ bot.onText(/\/randomItem/, (msg) => {
     });
 });
 
-// ===== КОМАНДА /deleteItem =====
+// КОМАНДА /deleteItem 
 bot.onText(/\/deleteItem (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const id = match[1];
@@ -129,7 +129,7 @@ bot.onText(/\/deleteItem (.+)/, (msg, match) => {
     });
 });
 
-// ===== КОМАНДА /getItemByID =====
+//  КОМАНДА /getItemByID 
 bot.onText(/\/getItemByID (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const id = match[1];
@@ -149,7 +149,7 @@ bot.onText(/\/getItemByID (.+)/, (msg, match) => {
     });
 });
 
-// ===== КОМАНДА !qr =====
+//  КОМАНДА !qr 
 bot.onText(/!qr (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const text = match[1];
@@ -165,7 +165,7 @@ bot.onText(/!qr (.+)/, async (msg, match) => {
     }
 });
 
-// ===== КОМАНДА !webscr =====
+//  КОМАНДА !webscr 
 bot.onText(/!webscr (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     let url = match[1].trim();
@@ -185,7 +185,7 @@ bot.onText(/!webscr (.+)/, async (msg, match) => {
     }
 });
 
-// ===== ТАЙМЕР: Проверка пользователей каждый день в 13:00 МСК =====
+//  ТАЙМЕР: Проверка пользователей каждый день в 13:00 МСК 
 function checkInactiveUsers() {
     console.log(' Проверка неактивных пользователей...');
     
