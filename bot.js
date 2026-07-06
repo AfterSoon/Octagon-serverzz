@@ -1,8 +1,10 @@
 const TelegramBot = require('node-telegram-bot-api').default;
 const mysql = require('mysql2');
+const axios = require('axios');
+const { setIntervalAsync, clearIntervalAsync } = require('set-interval-async/dynamic');
 
 // Вставь сюда свой токен от BotFather
-const token = 'TOKEN HERE';
+const token = '8831313711:AAHA1XuI1x6OGW4KilT2W6ywQKahsTLtqoc';
 
 // Создаем бота
 const bot = new TelegramBot(token, { polling: true });
@@ -23,17 +25,51 @@ db.connect((err) => {
     console.log('Бот подключен к базе данных ChatBotTests');
 });
 
-// Команда /start
+// ===== ФУНКЦИЯ: Обновление даты последнего сообщения =====
+function updateUserLastMessage(userId) {
+    const today = new Date().toISOString().split('T')[0]; // формат YYYY-MM-DD
+    
+    const sql = `
+        INSERT INTO Users (id, lastMessage) VALUES (?, ?)
+        ON DUPLICATE KEY UPDATE lastMessage = ?
+    `;
+    db.query(sql, [userId, today, today], (err) => {
+        if (err) {
+            console.error('Ошибка обновления пользователя:', err);
+        }
+    });
+}
+
+// ===== ФУНКЦИЯ: Получение случайного предмета =====
+function getRandomItem(callback) {
+    const sql = 'SELECT * FROM Items ORDER BY RAND() LIMIT 1';
+    db.query(sql, (err, results) => {
+        if (err || results.length === 0) {
+            callback('База данных пуста');
+            return;
+        }
+        const item = results[0];
+        callback(`(${item.id}) - ${item.name}: ${item.desc}`);
+    });
+}
+
+// ===== ОБРАБОТЧИК: Любое текстовое сообщение =====
+bot.on('message', (msg) => {
+    const userId = msg.from.id;
+    updateUserLastMessage(userId);
+});
+
+// ===== КОМАНДА /start =====
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, 'Привет, октагон!');
 });
 
-// Команда /help - список команд
+// ===== КОМАНДА /help =====
 bot.onText(/\/help/, (msg) => {
     const chatId = msg.chat.id;
     const helpText = `
-Список команд:
+📋 Список команд:
 
 /start - приветствие
 /help - список команд с описанием
@@ -49,34 +85,28 @@ bot.onText(/\/help/, (msg) => {
     
     bot.sendMessage(chatId, helpText);
 });
-// Команда /site - ссылка на сайт
+
+// ===== КОМАНДА /site =====
 bot.onText(/\/site/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, 'Сайт Октагона: https://octagon.ru');
 });
 
-// Команда /creator - ФИО создателя
+// ===== КОМАНДА /creator =====
 bot.onText(/\/creator/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, 'Создатель бота: Сокорев Владимир');
 });
 
-// Команда /randomItem - случайный предмет
+// ===== КОМАНДА /randomItem =====
 bot.onText(/\/randomItem/, (msg) => {
     const chatId = msg.chat.id;
-    
-    const sql = 'SELECT * FROM Items ORDER BY RAND() LIMIT 1';
-    db.query(sql, (err, results) => {
-        if (err || results.length === 0) {
-            return bot.sendMessage(chatId, 'Ошибка: база данных пуста или произошла ошибка');
-        }
-        
-        const item = results[0];
-        bot.sendMessage(chatId, `(${item.id}) - ${item.name}: ${item.desc}`);
+    getRandomItem((text) => {
+        bot.sendMessage(chatId, text);
     });
 });
 
-// Команда /deleteItem - удалить предмет по ID
+// ===== КОМАНДА /deleteItem =====
 bot.onText(/\/deleteItem (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const id = match[1];
@@ -99,7 +129,7 @@ bot.onText(/\/deleteItem (.+)/, (msg, match) => {
     });
 });
 
-// Команда /getItemByID - получить предмет по ID
+// ===== КОМАНДА /getItemByID =====
 bot.onText(/\/getItemByID (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const id = match[1];
@@ -118,18 +148,14 @@ bot.onText(/\/getItemByID (.+)/, (msg, match) => {
         bot.sendMessage(chatId, `(${item.id}) - ${item.name}: ${item.desc}`);
     });
 });
-const axios = require('axios');
 
-// Команда !qr - генерация QR-кода
+// ===== КОМАНДА !qr =====
 bot.onText(/!qr (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const text = match[1];
     
     try {
-        // Используем бесплатный API для генерации QR-кода
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(text)}`;
-        
-        // Отправляем изображение QR-кода
         await bot.sendPhoto(chatId, qrUrl, {
             caption: `QR-код для: ${text}`
         });
@@ -139,20 +165,17 @@ bot.onText(/!qr (.+)/, async (msg, match) => {
     }
 });
 
-// Команда !webscr - скриншот сайта (используем бесплатный API)
+// ===== КОМАНДА !webscr =====
 bot.onText(/!webscr (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     let url = match[1].trim();
     
-    // Добавляем http:// если не указан протокол
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
         url = 'http://' + url;
     }
     
     try {
-        // Используем API thum.io (бесплатный, без регистрации)
-        const screenshotUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&embed=screenshot.url&waitUntil=networkidle2`;
-        
+        const screenshotUrl = `https://image.thum.io/get/width/1024/crop/768/${encodeURIComponent(url)}`;
         await bot.sendPhoto(chatId, screenshotUrl, {
             caption: `Скриншот сайта: ${url}`
         });
@@ -161,4 +184,67 @@ bot.onText(/!webscr (.+)/, async (msg, match) => {
         console.error('Ошибка скриншота:', error.message);
     }
 });
+
+// ===== ТАЙМЕР: Проверка пользователей каждый день в 13:00 МСК =====
+function checkInactiveUsers() {
+    console.log(' Проверка неактивных пользователей...');
+    
+    const today = new Date();
+    // Вычисляем дату 2 дня назад
+    const twoDaysAgo = new Date(today);
+    twoDaysAgo.setDate(today.getDate() - 2);
+    const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
+    
+    const sql = 'SELECT id FROM Users WHERE lastMessage <= ?';
+    db.query(sql, [twoDaysAgoStr], (err, results) => {
+        if (err) {
+            console.error('Ошибка получения неактивных пользователей:', err);
+            return;
+        }
+        
+        if (results.length === 0) {
+            console.log('Все пользователи активны!');
+            return;
+        }
+        
+        console.log(`Найдено ${results.length} неактивных пользователей`);
+        
+        // Отправляем randomItem каждому неактивному пользователю
+        results.forEach((user) => {
+            getRandomItem((itemText) => {
+                bot.sendMessage(user.id, ` Привет! Вот случайный предмет для тебя:\n${itemText}`);
+            });
+        });
+    });
+}
+
+// Функция для вычисления времени до следующего 13:00 МСК
+function getNext13MSK() {
+    const now = new Date();
+    // МСК = UTC+3, значит 13:00 МСК = 10:00 UTC
+    const next = new Date(now);
+    next.setUTCHours(10, 0, 0, 0); // 10:00 UTC = 13:00 МСК
+    
+    // Если сегодня уже прошло 13:00 МСК - планируем на завтра
+    if (now > next) {
+        next.setUTCDate(next.getUTCDate() + 1);
+    }
+    
+    return next;
+}
+
+// Запускаем первый запуск в 13:00 МСК
+const firstRun = getNext13MSK();
+const msUntilFirstRun = firstRun - new Date();
+console.log(`Первая проверка будет в ${firstRun.toLocaleString()}`);
+
+setTimeout(() => {
+    // Первый запуск
+    checkInactiveUsers();
+    
+    // Затем запускаем каждые 24 часа
+    const timer = setIntervalAsync(checkInactiveUsers, 24 * 60 * 60 * 1000);
+    console.log(' Таймер запущен (каждые 24 часа)');
+}, msUntilFirstRun);
+
 console.log('Бот запущен...');
